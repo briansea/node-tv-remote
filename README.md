@@ -3,7 +3,7 @@ node-tv-remote
 
 This is a node.js project that allows you to turn a computer into a media server which cam be controlled from your computer or mobile phone's browser.. It has been tested on a Raspberry Pi, but it should also work on any Linux/OS X system.
 
-h2. Configuration
+## Configuration
 
 Edit the settings.js file to set the path to your media directory. It could be a: 
 * Local Directory
@@ -22,7 +22,7 @@ It requires the following node modules:
 
 It's best to use the forever module/utility to keep the app running in the background.
 
-h2. Usage
+## Usage
 
 Start the server
 <code>
