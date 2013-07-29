@@ -6,7 +6,7 @@ eval(fs.readFileSync('settings.js')+'');
 var mode = 'waiting';
 	
 var http = require('http');	
-var io = require(settings.scocketIoPath).listen(settings.socketIoPort);
+var io = require('socket.io').listen(settings.socketIoPort);
 
 process.on('uncaughtException', function(err) {
   console.error(err.stack);
@@ -97,7 +97,7 @@ io.sockets.on('connection', function (socket)
 	  	
 	  	writeViewingHistory(data['path']);
 	  	
-	  	player = spawn("omxplayer", [settings.mediaBasePath+'/'+data['path']]);
+	  	player = spawn("omxplayer", ["-o", "hdmi", settings.mediaBasePath+'/'+data['path']]);
 	  	player.stdin.setEncoding = 'utf-8';
 	  	setMode('playing');
     });
