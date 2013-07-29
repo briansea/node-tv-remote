@@ -2,7 +2,7 @@ var spawn = require('child_process').spawn;
 var fs = require("fs");
 var mime = require('mime');
 
-eval(fs.readFileSync('settings.js')+'');
+eval(fs.readFileSync(__dirname+'/settings.js')+'');
 
 var mode = 'waiting';
 	
@@ -17,7 +17,7 @@ var viewingHistory = {};
 
 try
 {
-	viewingHistory = JSON.parse(fs.readFileSync('viewingHistory.js', 'utf8'));
+	viewingHistory = JSON.parse(fs.readFileSync(__dirname+'/viewingHistory.js', 'utf8'));
 }
 catch (e)
 {
@@ -31,22 +31,22 @@ http.createServer(function (req, res)
 	var path = req.url.replace(/^\//, '');
 	
 	if (path == '')
-	{
+	{console.log('HERE '+__dirname);
 		res.writeHead(200, "OK", {'Content-Type': 'text/html'});
-        res.write(fs.readFileSync('index.html', 'utf8').replace('IP_ADDRESS', req.headers.host));
+        res.write(fs.readFileSync(__dirname+'/index.html', 'utf8').replace('IP_ADDRESS', req.headers.host));
 		res.end();
 	}
 	else
 	{
-		if (fs.existsSync(path))
+		if (fs.existsSync(__dirname+'/'+path))
 		{
-			var type = mime.lookup(path);
+			var type = mime.lookup(__dirname+'/'+path);
 
 			res.writeHead(200, {
 			   "Content-Type": type
 			});
 			
-			res.write(fs.readFileSync(path, 'binary'), "binary");
+			res.write(fs.readFileSync(__dirname+'/'+path, 'binary'), "binary");
 			res.end();
 		}
 		else
@@ -120,7 +120,10 @@ io.sockets.on('connection', function (socket)
 	  	
 	  	writeViewingHistory(data['path']);
 	  	
-	  	player = spawn("omxplayer", ["-o", "hdmi", settings.mediaBasePath+'/'+data['path']]);
+	  	var args = settings.omxplayerArgs;
+	  	args.push(settings.mediaBasePath+'/'+data['path']);
+	  	
+	  	player = spawn("omxplayer", args);
 	  	player.stdin.setEncoding = 'utf-8';
 	  	setMode('playing');
     });
@@ -150,7 +153,7 @@ function writeViewingHistory(path)
 {
 	viewingHistory[path] = true;
 	
-	fs.writeFile('viewingHistory.js', JSON.stringify(viewingHistory), function (err)
+	fs.writeFile(__dirname+'/viewingHistory.js', JSON.stringify(viewingHistory), function (err)
 	{
 	});
 }
