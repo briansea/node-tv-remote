@@ -3,7 +3,10 @@
 	<head>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-		<title></title>
+		<link rel="shortcut icon" href="/favicon.png" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<link rel="apple-touch-icon" href="/tv.png" />
+		<title>Media Browser</title>
 		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
 		<script src="http://IP_ADDRESS:1337/socket.io/socket.io.js"></script> 
 		<script>
@@ -58,7 +61,16 @@
 		    
 		    $(document).ready(function()
 		    {
-		    	$("#wrapper").height($(window).height()-96);
+		    	function resize()
+		    	{
+			    	$("#content").height($(window).height()-68);
+		    	}
+		    	
+		    	window.addEventListener("resize", resize, false);
+		    	
+		    	window.addEventListener('orientationchange', resize);
+		    	
+		    	resize();
 		    	
 				setTimeout(function() { window.scrollTo(0, 1) }, 100);
 				
@@ -182,6 +194,11 @@
 				overflow:auto;
 			}
 			
+			#content {
+				overflow: auto;
+				-webkit-overflow-scrolling: touch;
+			}
+			
 			#fileList > div, #upALevel
 			{				
 				padding:5px;
@@ -192,6 +209,11 @@
 				text-shadow: 0 1px 0 #fff;
 				background-image: -webkit-gradient(linear,left top,left bottom,from( #fff ),to( #f1f1f1 ));
 				background-image: -webkit-linear-gradient( #fff,#f1f1f1 );
+				
+				text-overflow: ellipsis;
+			    white-space: nowrap;
+			    overflow: hidden;
+			    vertical-align: top;
 			}
 			
 			#fileList > div a {
@@ -215,6 +237,12 @@
 				background-color: white;
 			}
 			
+			@media only screen and (max-width : 320px) {
+				#rewindButton, #fastforwardButton {
+					display:none;
+				}
+			}
+			
 		</style>
 		
 	</head>
@@ -222,9 +250,10 @@
 	<body>
 		<div id="wrapper">
 			<div id="header"></div>
-			<a href="#" id="upALevel" style="display:none;">Up to higher level directory</a>
-			<div id="fileList"></div>
-			
+			<div id="content">
+				<a href="#" id="upALevel" style="display:none;">Up to higher level directory</a>
+				<div id="fileList"></div>
+			</div>
 			<div id="controls">
 				<a href="#" id="rewindButton">
 					<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABmJLR0QA/wD/AP+gvaeTAAAAB3RJTUUH2AsGEgokuUwhagAADGRJREFUeJztWn10VOWdfn7ve+fOzJ3M103CZBKSIQZI0gB2FfmSVZYvjQTZ7YEIalEgBkxCCvlQz9LaWMWW3VOrRQSqLdtKPV13t267rG5X8KsRFTzaIiAQAkJIIAHCJJMQMjP3vvvH3JlkegJNGj5Oz85zTk7mnvPOc3/3eZ/n97733gESSCCBBBJIIIEEEkgggQQSSOD/HegGn98KQAEQBBC42uSFhYUOInKbzeaeN954o22gMTdKAAmACkCZPXf2/GAw2P7Bex/8FldJhMLCQrOiKFmMMbcgcRfn3G+32V9/5ZVXWgcq5HqCADgBOCdPm5ybmZGxnhhN7OjoqEpNTbWdPXt2WALU1dWxhoaGdCFEuk76aOja45ouJkgS+57NZnMBuKECKFarNSUjIyM5vyBvtdVqeWh8wXixb/8+cM642WzmwyFfsWKFevz48WxZllN6LnUv13V94biCcfhi/xeQJIkpijIg//UQwKQoSqqiKEm33nbr37ucjiecLpe9uqqajR2Ti+LFC8E5Zy6Xi506dWrI5GvXrrX29PTkCCHU3lDvXb2XesqT7Pak2praGL8sy9zpdF53AVh6erpKRGr26OyCtDRPHWds/IMPfhNzZ88lWTbHBnIuMYfDwYZCvmjRIj5y5EhfOBzOCOmh3IsXu6u0cDhv8eIlNK9wHvrzS5LEXC7XgPzXRICUlBS7xWLxpKWlqZlZ6Wslk+m+yVOm6MsfWk4ulxstLc3o6gogNzcfAMAY4263e9ARqKmpGcE5Hx0MBpMvdJwr6e0Nzp84caJYsayEVDUZTU0n0d3dhfz8AgCAyWTiVqv12gswevRos6ZpaUlJSQ5ftu8bis1SnZqSal1dXkljx+byzkAn9n3xB3R1BaCqyX1FSBKXFPnPOqCuri4pGAyOtVqt6vGvjhd29wRWJqvJloqy1ZSXl0/+Dj/27P0YXV0BeDxpse/JssxcLtc1jQDPz88fYTKZkr1e7wSHO+k7EpdyH176MGbOnEW6LnC08QjOnz8HgIFzEzjvq8dkMjGn/fIOqKurkzjnOZIkZfr9/vwTTccqdV3kLFu6jGbNmg1dFzh0+CDa2lohBMAYB2N9esqyzN1u97VxwPjx492KongdDkeqw2VbwxhfMH3adPHQ0ofJ4XCi5XQzWlqaoeuaURSBiOIEYIwxu90+UIH03HPPpQshxvb09KQcbviypLu7e84dd9wplj64lOx2B5pbTqGp6SQ0LQzOOYQAABEvgElmNpvt6gowdepUq67rIxVFcbhU10LZLFV6PV55dUUl3XRTDvn9fuzb9zku9faCiMAYj+y6yBCA9QkgyzJPSkqKK3Dr1q3OUCj0NV3X1YOHDt7j97cv83g88pPf/i5lZ99EHR0d2L//j7jY0wMA4FwChICAIQD10VmsFmaz2a5OBBYtWsQ7OjrSiShVSVK+Lpukf5RMUnZpyUp2++3TEdbCaDh6GBcuXEB0Jsi4aIooEDvuJwBzOBwcAOrq6uSMjIw8SZJGnmg6UXDyxFflmq5lrSp9lKZP/1uEtTAajzXA7/eDCOA8YnchBAAxsANkmauqOnwHzJ8/P6W3tzfTard6LSZThS5E4axZs/X7l9zPrFYFbW1ncKb1DHRNg8S5MRvoJwAD9TuOgnPOrVartG3btlFmsznvbPtZz75PPn+4MxCYMWvWHPHAkvtJUWxobT2N1rZWCF1A4hwgAmMCQgjouh4hM1zQXwCLxXK5iA1OgLlz59rsdvsok8nkFKQVAyj1+bJMFWWVyMzMYh2dHTh85BCCht25ZALBsKMQfRdMFIvBn8wQc7vdI3VdH/XRJ7uL2tpal2RkZJi+8+06+Hw+8nf4cfDLAwiHgiBGYFIkTsQiguq6gGA6dCEGFECWzcxisQw9AjNmzJDS09OzJEnyBLXgLdD1x81mc8bKR1ayKVOmIhQK49ixo+jq6gLjDJLU/xyEPksiLgKAiHOA2WxhDY0NNx8+dHCVANLKVpWxadNuRzAYQkPDYQS6AmCMGXFiYMxwEwEA6+cCDREN9DgBoroPSYDS0lIngLxLly6lh8KXVmua9nd3312o31e8mFnMFpw+cxpnz7ZFCuMMjBiIxZ9JgKIygIggBEAQALG4Ak+fbi5qbDw65p575olFC4vJYraguaUZbW2tRgNl4IyBGAOLRonIOB8BBAghQDpB6DoE4vmvhMsKIMvyuAv+898MhoIrb8rO0R5/7Am43W7W3n4ejY0N0MIaGGexAplRXJ/cDEQRBwgIGNcNgIyGRcbsEJxOV84LP3oRTqeT2tvP48iRQwiHw7EGx4yLH1AEoqipIJgOTdMjYtAwBbBarVJngMsIAcbU9UPEzkSsX5fv+wyiiBhGHyDAyGfk2wICjPURCiHirEMUvch+4jIGYtwQgSKOi3TUPhfoDEQ6NF2L478SLiuT1+v9Yvy4m7ePHZ239PSZlj0rVz2CX7z6c2GxWDGuYBw8Hi84IxCiBUYsyTiDxDk45+BcgsQlcC4Zxzw2q0aAIYTAxZ6LJx4pXYHXXtsurFYFE8ZPgNebAc4i0eoTgQwn9PH3cRrnkyJ/NMgIXHZUVVVVu8/nqx81atQf58y+e31OTs6Tb7/9u9ZVZaX6nj174PGkYcyYXNjtSSBQrFAe7QmMgXMOSYoUaZIi29/oJoj1a4KTbpu0s7i4+Pld7+w692j5Sn3v3r1IS/MiL+9rsNvtEe4Yv5F9YmCMGwJzQ/TomHj+K+GKq0BxcXEQwL4dO3Y0TZsyvQtTcPid93bNe2Hj84uzsny8suJbPDPTh+7uLpxvPwdd0yMNLi4a0czDiA1B1/W4VUCSJFr4jeIv77m7qO6lLZtmvrDx+XuzsrJYRVkl9/my0dUVwLnzZ6FreqwXxBxh9AIg0v2jq81ge8CgRhUVFV249957P3A6nXsXFy/59aLi+yo7A517qmrWYNu//ExwzpE50geXSzWKIjBGsRWCc278l2JRGeBx5DFFUd6vqard8dRTT6/TNO3z6tq1+OnPXhGcc/iysuF2q3FLIWM85jZizLgJIuPzMJvgABB33nnn8QMHDjSPc4+7eULBhK76+vp3369/d9nOXW+nrS6vpEmTJiMpKQmBQCdCoSCIIrMFRLKuQQPpHASBARyqE9EBIUTjmJwxk/95ww/9O3bseP8//+vXD7zz7i5P+aMVNGXKVNjtDnR2diAY7I3FKeqyiLPY5fgHxJCewgBAQUFBMDc3d++IESPeWrBgwe4f/tOPnrzlb2751caXftz72BO1WltbK9xuFS6XG5LEjSXJiIGI9b7YBulPQUSXiOh9AL8pKiqq3/TjzU9NmjT59U1bXuytfbxGO3PmNFQ1GW63CkmSYvESQsRxXo5/2AJE4XQ621VV/W9VVT+orqp985mnn10nmaRP1lavwcs/3aprmg6XS4XVaoOma7EZiu7ZBa5cIRG1AfiN2Wx+71ur17z5zNPPrjPJpk+qa6uw9eXNuqbpcLuTY/xRbl2P7AMG+8D/LxagX6FHALye7cve/YP1G7aVLC/Z8Omnn7aUlC4XH+7+EBaLBW5XMkwmOV6EQUwREQkiOgTgV9m+7I+j/J999lnLIytXiN/X/x5WqxWqOwWybI4TYbAWGLYARqFBIvoIwH/MmXNX/eZNW5+ZNnX6a1u2vtRTXVOlNbecgsvlRnJyCiRJity8DJ3/QwBvzJlz1+4o/09e3tJTVb1WO9XcZPAng3MeEeF6CtCv0AtEtIMxtrO8rPyt76/fsE6xKfU1tdVi00sb9WAwBI/HC1VVcYX7kyvxnyei3zLGdpWXlf/P99dvWGdLstXXPlYjNr74gh4KheHxeOF2q4AY5k5wOCCiRgCvZ2Zmfrj+6We3l5VVrN9/YP/JktLlYueu/4Wi2JCaOmI4/EcB/GtmZuZHUf6DXx48WVK6XLy983cGf+qguK6JAEaRISLaA+DfZtwxY/emjZt/MHPmzF+8uv3Vrso1FVpT08mrwf8xgH+fcceMj6L823+5fUj81/zNEBF1AHhLCDGqtGRVYP68BX/Y8pPNRTWPVc+ceOutAsOcBCLyA3hTCJH9l/Bft3eDRPSVEOKU1+v9+lPf/V7n7o931/9y+6sPABhtDBlKXxyI/7gQommo/Dfk9bgQwgFgKgDftp9vu01VXYEF8/9hKxEdvt78N/QHEkKIkQBGAThnrPd/VfwJJJBAAgkkkEACCSSQQAIJJPBXiv8Dhaewt3/iOZkAAAAASUVORK5CYIIzMjY2" />

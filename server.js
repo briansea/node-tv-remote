@@ -1,5 +1,6 @@
 var spawn = require('child_process').spawn;
 var fs = require("fs");
+var mime = require('mime');
 
 eval(fs.readFileSync('settings.js')+'');
 
@@ -27,14 +28,36 @@ var player = false;
 
 http.createServer(function (req, res)
 {
-    switch (req.url) 
-    {
-        case '/':
-            res.writeHead(200, "OK", {'Content-Type': 'text/html'});
-           
-			res.write(fs.readFileSync('index.html', 'utf8').replace('IP_ADDRESS', req.headers.host));
+	var path = req.url.replace(/^\//, '');
+	
+	if (path == '')
+	{
+		res.writeHead(200, "OK", {'Content-Type': 'text/html'});
+        res.write(fs.readFileSync('index.html', 'utf8').replace('IP_ADDRESS', req.headers.host));
+		res.end();
+	}
+	else
+	{
+		if (fs.existsSync(path))
+		{
+			var type = mime.lookup(path);
+
+			res.writeHead(200, {
+			   "Content-Type": type
+			});
+			
+			res.write(fs.readFileSync(path, 'binary'), "binary");
 			res.end();
-        	break;
+		}
+		else
+		{
+			res.writeHead(404, {
+			   "Content-Type": "text/plain"
+			});
+			
+			res.write("404 Not Found\n");
+			res.end();
+		}
 	}
 	
 }).listen(settings.httpPort);
