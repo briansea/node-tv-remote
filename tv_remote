@@ -2,14 +2,14 @@
 #/etc/init.d/tv_remote
 
 export PATH=$PATH:/usr/local/bin
-export NODE_PATH=$NODE_PATH:/usr/local/lib/node_modules
+export NODE_PATH=$NODE_PATH:/usr/local/lib/node_modules:/home/pi/node-tv-remote
 
 case "$1" in
   start)
-  exec forever start -a -l  /root/forever.log -o  /root/out.log -e /root/err.log /home/pi/node-tv-remote/server.js
+  exec forever start --sourceDir=/home/pi/node-tv-remote -a -l  /root/forever.log -o  /root/out.log -e /root/err.log server.js
   ;;
 stop)
-  exec forever stop --sourceDir=/home/pi/node-tv-remote server.js
+  exec forever --sourceDir=/home/pi/node-tv-remote stop server.js
   ;;
 *)
   echo "Usage: /etc/init.d/tv_remote {start|stop}"
