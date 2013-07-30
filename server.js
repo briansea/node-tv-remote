@@ -31,7 +31,7 @@ http.createServer(function (req, res)
 	var path = req.url.replace(/^\//, '');
 	
 	if (path == '')
-	{console.log('HERE '+__dirname);
+	{
 		res.writeHead(200, "OK", {'Content-Type': 'text/html'});
         res.write(fs.readFileSync(__dirname+'/index.html', 'utf8').replace('IP_ADDRESS', req.headers.host));
 		res.end();
@@ -113,14 +113,22 @@ io.sockets.on('connection', function (socket)
   	{
   		if (typeof player != "boolean")
   		{
-  			player.stdin.write("q");
-  			//player.kill("SIGHUP");
+  			try
+			{
+				player.stdin.write("q");
+			}
+			catch (e)
+			{
+				console.log(e);
+			}
+  			
+  			player.kill();
   			//process.kill(player);
   		}
 	  	
 	  	writeViewingHistory(data['path']);
 	  	
-	  	var args = settings.omxplayerArgs;
+	  	var args = settings.omxplayerArgs.slice(); //clone
 	  	args.push(settings.mediaBasePath+'/'+data['path']);
 	  	
 	  	player = spawn("omxplayer", args);
