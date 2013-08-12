@@ -152,7 +152,7 @@ io.sockets.on('connection', function (socket)
 	  	
 	  	var args = settings.omxplayerArgs.slice(); //clone
 	  	
-	  	if (data.startTime)
+	  	if (typeof data.startTime != "undefined")
 	  	{
 		  	args.push('-l');
 		  	args.push(startTime);
