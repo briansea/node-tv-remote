@@ -155,7 +155,7 @@ io.sockets.on('connection', function (socket)
 	  	if (typeof data.startTime != "undefined")
 	  	{
 		  	args.push('-l');
-		  	args.push(startTime);
+		  	args.push(data.startTime);
 	  	}
 	  	
 	  	currentFile = settings.mediaBasePath+'/'+data['path'];
