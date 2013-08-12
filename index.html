@@ -59,6 +59,13 @@
 		    	$("#fileList").html(out);
 		    });
 		    
+		    socket.on('currentPlayTime', function (data) 
+			{
+				$("#timeHolder").text(data.time);
+		    });
+		    
+		    
+		    
 		    $(document).ready(function()
 		    {
 		    	function resize()
@@ -251,7 +258,9 @@
 		<div id="wrapper">
 			<div id="header"></div>
 			<div id="content">
-				<a href="#" id="upALevel" style="display:none;">Up to higher level directory</a>
+				<a href="#" id="upALevel" style="display:none;float:left;">Up to higher level directory</a>
+				<span id="timeHolder" style="float:right;"></span>
+				<br style="clear:both;"/>
 				<div id="fileList"></div>
 			</div>
 			<div id="controls">
