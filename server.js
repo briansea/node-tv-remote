@@ -1,36 +1,20 @@
 var spawn = require('child_process').spawn;
 var fs = require("fs");
 var mime = require('mime');
-var mdns = require('mdns');
 
 eval(fs.readFileSync(__dirname+'/settings.js')+'');
 
 var mode = 'waiting';
-	
+var totalSeconds = 0;
+var currentFile = '';
+
 var http = require('http');	
 var io = require('socket.io').listen(settings.socketIoPort);
+var ioClient = require('socket.io-client');
 
 process.on('uncaughtException', function(err) {
   console.error(err.stack);
 });
-
-
-
-var ad = mdns.createAdvertisement(mdns.tcp('pi-tv'), 80);
-ad.start();
-
-var browser = mdns.createBrowser(mdns.tcp('pi-tv'));
-
-browser.on('serviceUp', function(service) {
-  console.log("service up: ", service);
-});
-
-browser.on('serviceDown', function(service) {
-  console.log("service down: ", service);
-});
-
-browser.start();
-
 
 
 var viewingHistory = {};
@@ -53,7 +37,11 @@ http.createServer(function (req, res)
 	if (path == '')
 	{
 		res.writeHead(200, "OK", {'Content-Type': 'text/html'});
-        res.write(fs.readFileSync(__dirname+'/index.html', 'utf8').replace('IP_ADDRESS', req.headers.host));
+		var content = fs.readFileSync(__dirname+'/index.html', 'utf8');
+		content = content.replace('IP_ADDRESS', req.headers.host);
+		content = content.replace('var otherTvServers = [];', 'var otherTvServers = '+JSON.stringify(settings.otherTvServers)+';');
+		
+        res.write(content);
 		res.end();
 	}
 	else
@@ -90,6 +78,20 @@ io.sockets.on('connection', function (socket)
 		mode = m;
 		socket.emit('setMode', { mode: mode});
 	}
+	
+	socket.on('continueOn', function(data) 
+  	{
+  		setMode('paused');
+  		
+  		var socketClient = ioClient.connect(data.server, {
+	  		port: 1337
+	  	});
+	  
+	  	socketClient.on('connect', function()
+	  	{ 
+        	socketClient.emit('play', { path: currentFile, startTime: totalSeconds});
+		});
+    });
 	
   	socket.on('pauseCommand', function(data) 
   	{
@@ -149,18 +151,23 @@ io.sockets.on('connection', function (socket)
 	  	writeViewingHistory(data['path']);
 	  	
 	  	var args = settings.omxplayerArgs.slice(); //clone
-	  	args.push(settings.mediaBasePath+'/'+data['path']);
+	  	
+	  	if (data.startTime)
+	  	{
+		  	args.push('-l');
+		  	args.push(startTime);
+	  	}
+	  	
+	  	currentFile = settings.mediaBasePath+'/'+data['path'];
+	  	args.push(currentFile);
 	  	
 	  	player = spawn("omxplayer", args);
 	  	player.stdin.setEncoding = 'utf-8';
-	  	
-	  	var regex = new RegExp("[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *([^ ]+) *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *");//[^:]+:[^:]+:(?: *)(\\d+\\.\\d+)
-	  	
-	  	var totalSeconds = 0;
+	  	totalSeconds = 0;
 	  	
 	  	player.stdout.on('data', function(data)
 	  	{
-		  	var lines = data.toString().split(/\r/);//regex.exec(data.toString());
+		  	var lines = data.toString().split(/\r/);
 		  	var match = lines[lines.length-1].split(/ +/);
 		  	
 		  	if (match.length > 7)
