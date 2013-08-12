@@ -13,7 +13,10 @@
 			var socket = io.connect('http://'+window.location.hostname+':1337');
 		  
 			var currentPath = '/';
+			var currentFile = '';
 			var mode = '';
+			
+			var otherTvServers = [];
 			
 			socket.on('setMode', function (data) 
 			{
@@ -80,6 +83,28 @@
 		    	resize();
 		    	
 				setTimeout(function() { window.scrollTo(0, 1) }, 100);
+				
+				if (otherTvServers.length)
+				{
+					var out = 'Continue On: <select id="continueOnSelect"><option>----</option>';
+					
+					$.each(otherTvServers, function(key, val)
+					{
+						out += '<option>'+val+'</option>';
+					});
+					
+					out += '</select>';
+					
+					$("#continueOnHolder").html(out);
+					
+					$("#continueOnSelect").change(function()
+					{
+						if ($(this).val() != '----')
+						{
+							socket.emit('continueOn', {server: $(this).val() });
+						}
+					});
+				}
 				
 			    $(document).on('click', "#fileList a", function()
 				{
@@ -180,6 +205,7 @@
 				function playFile(path)
 				{
 					socket.emit('play', { path: path });
+					currentFile = path;
 				}
 				
 				loadDirList(currentPath);
@@ -258,7 +284,8 @@
 		<div id="wrapper">
 			<div id="header"></div>
 			<div id="content">
-				<a href="#" id="upALevel" style="display:none;float:left;">Up to higher level directory</a>
+				<a href="#" id="upALevel" style="display:none;float:left;">Up</a>
+				<span id="continueOnHolder" style="float:right;padding-right: 4px;"></span>
 				<span id="timeHolder" style="float:right;"></span>
 				<br style="clear:both;"/>
 				<div id="fileList"></div>
