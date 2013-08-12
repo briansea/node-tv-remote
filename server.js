@@ -72,18 +72,18 @@ http.createServer(function (req, res)
 }).listen(settings.httpPort);
 
 
-function pauseMovie()
-{
-	if (mode == 'playing')
-	{
-		player.stdin.write(" ");
-	}
-	
-	setMode('paused');
-}
-
 io.sockets.on('connection', function (socket) 
 {
+	function pauseMovie()
+	{
+		if (mode == 'playing')
+		{
+			player.stdin.write(" ");
+		}
+		
+		setMode('paused');
+	}
+
 	function setMode(m)
 	{
 		mode = m;
