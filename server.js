@@ -1,6 +1,7 @@
 var spawn = require('child_process').spawn;
 var fs = require("fs");
 var mime = require('mime');
+var mdns = require('mdns');
 
 eval(fs.readFileSync(__dirname+'/settings.js')+'');
 
@@ -12,6 +13,25 @@ var io = require('socket.io').listen(settings.socketIoPort);
 process.on('uncaughtException', function(err) {
   console.error(err.stack);
 });
+
+
+
+var ad = mdns.createAdvertisement(mdns.tcp('pi-tv'), 80);
+ad.start();
+
+var browser = mdns.createBrowser(mdns.tcp('pi-tv'));
+
+browser.on('serviceUp', function(service) {
+  console.log("service up: ", service);
+});
+
+browser.on('serviceDown', function(service) {
+  console.log("service down: ", service);
+});
+
+browser.start();
+
+
 
 var viewingHistory = {};
 
@@ -133,6 +153,64 @@ io.sockets.on('connection', function (socket)
 	  	
 	  	player = spawn("omxplayer", args);
 	  	player.stdin.setEncoding = 'utf-8';
+	  	
+	  	var regex = new RegExp("[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *([^ ]+) *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *[^ ]+ *");//[^:]+:[^:]+:(?: *)(\\d+\\.\\d+)
+	  	
+	  	var totalSeconds = 0;
+	  	
+	  	player.stdout.on('data', function(data)
+	  	{
+		  	var lines = data.toString().split(/\r/);//regex.exec(data.toString());
+		  	var match = lines[lines.length-1].split(/ +/);
+		  	
+		  	if (match.length > 7)
+		  	{
+			  	console.log();
+			  	var secs = 0;
+			  	var mins = 0;
+			  	var hours = 0;
+			  	var seconds = Math.round(parseInt(match[7]));
+			  	
+			  	if (seconds > totalSeconds)
+			  	{
+				  	totalSeconds = seconds;
+			  	}
+			  	else
+			  	{
+				  	return;
+			  	}
+			  	
+			  	if (seconds < 60)
+			  	{
+				  	secs = seconds;
+			  	}
+			  	else if (seconds > 60)
+			  	{
+				  	var secs = seconds % 60;
+				  	var minutes = Math.round(seconds/60);
+				  	
+				  	if (minutes < 60)
+				  	{
+					  	mins = minutes;
+				  	}
+				  	else if (minutes > 60)
+				  	{
+					  	mins = minutes % 60;
+					  	hours = Math.round(minutes/60);
+				  	}
+			  	}
+			  	secs = secs.toString();
+			  	mins = mins.toString();
+			  	hours = hours.toString();
+			  	secs = Array(2 + 1 - secs.length).join(0) + secs;
+			  	mins = Array(2 + 1 - mins.length).join(0) + mins;
+			  	hours = Array(2 + 1 - hours.length).join(0) + hours;
+			  	
+			  	socket.emit('currentPlayTime', { time:  hours+":"+mins+":"+secs});
+		  	}
+		  	
+		});
+		  	
 	  	setMode('playing');
     });
     
