@@ -172,7 +172,7 @@ io.sockets.on('connection', function (socket)
 	  	}
 	  	
 	  	currentFile = data['path'];
-	  	args.push(currentFile);
+	  	args.push(settings.mediaBasePath+'/'+currentFile);
 	  	
 	  	player = spawn("omxplayer", args);
 	  	player.stdin.setEncoding = 'utf-8';
