@@ -10,6 +10,7 @@ var currentFile = '';
 
 var http = require('http');	
 var io = require('socket.io').listen(settings.socketIoPort);
+io.set('log level', 1); 
 var ioClient = require('socket.io-client');
 
 process.on('uncaughtException', function(err) {
@@ -71,6 +72,16 @@ http.createServer(function (req, res)
 }).listen(settings.httpPort);
 
 
+function pauseMovie()
+{
+	if (mode == 'playing')
+	{
+		player.stdin.write(" ");
+	}
+	
+	setMode('paused');
+}
+
 io.sockets.on('connection', function (socket) 
 {
 	function setMode(m)
@@ -81,7 +92,10 @@ io.sockets.on('connection', function (socket)
 	
 	socket.on('continueOn', function(data) 
   	{
-  		setMode('paused');
+  		if (mode == 'playing')
+  		{
+  			pauseMovie();
+  		}
   		
   		var socketClient = ioClient.connect(data.server, {
 	  		port: 1337
@@ -95,8 +109,7 @@ io.sockets.on('connection', function (socket)
 	
   	socket.on('pauseCommand', function(data) 
   	{
-  		setMode('paused');
-    	player.stdin.write(" ");
+  		pauseMovie();
     });
     
     socket.on('stopCommand', function(data) 
@@ -158,7 +171,7 @@ io.sockets.on('connection', function (socket)
 		  	args.push(data.startTime);
 	  	}
 	  	
-	  	currentFile = settings.mediaBasePath+'/'+data['path'];
+	  	currentFile = data['path'];
 	  	args.push(currentFile);
 	  	
 	  	player = spawn("omxplayer", args);
