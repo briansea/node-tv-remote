@@ -219,6 +219,7 @@ io.sockets.on('connection', function (socket)
 					  	hours = Math.round(minutes/60);
 				  	}
 			  	}
+			  	
 			  	secs = secs.toString();
 			  	mins = mins.toString();
 			  	hours = hours.toString();
