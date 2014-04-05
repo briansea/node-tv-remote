@@ -86,7 +86,7 @@
 				
 				if (otherTvServers.length)
 				{
-					var out = 'Continue On: <select id="continueOnSelect"><option>----</option>';
+					var out = '<select id="continueOnSelect"><option>Continue On...</option>';
 					
 					$.each(otherTvServers, function(key, val)
 					{
@@ -99,17 +99,25 @@
 					
 					$("#continueOnSelect").change(function()
 					{
-						if ($(this).val() != '----')
+						if ($(this).val() != 'Continue On...')
 						{
 							socket.emit('continueOn', {server: $(this).val() });
 						}
 					});
 				}
 				
+				var out = '';
+				
+				for (var i=0; i<60; i++)
+				{
+					out += '<option>'+i+'</option>';
+				}
+				
+				$("#timeMinutes, #timeSeconds").html(out);
+				
 			    $(document).on('click', "#fileList a", function()
 				{
 					var $this = $(this);
-					
 					
 					if ($this.data('type') == 'file')
 					{
@@ -186,11 +194,16 @@
 					return false;
 				});
 				
+				$("#startAtTimeButton").click(function()
+				{
+					var startTime = parseInt($("#timeHours").val())*3600 + parseInt($("#timeMinutes").val())*60 + parseInt($("#timeSeconds").val());
+					socket.emit('play', {path: currentFile, startTime: startTime});
+				});
 				
 				
 				function loadDirList(path)
 				{
-					socket.emit('dirList', { dir: path });
+					socket.emit('dirList', {dir: path});
 					
 					if (path == '/')
 					{
@@ -204,7 +217,7 @@
 				
 				function playFile(path)
 				{
-					socket.emit('play', { path: path });
+					socket.emit('play', {path: path});
 					currentFile = path;
 				}
 				
@@ -286,7 +299,13 @@
 			<div id="content">
 				<a href="#" id="upALevel" style="display:none;float:left;">Up</a>
 				<span id="continueOnHolder" style="float:right;padding-right: 4px;"></span>
-				<span id="timeHolder" style="float:right;"></span>
+				<span style="float:right;">
+					<span id="timeHolder" ></span> 
+					<a href="javascript:{}">Change Time</a> 
+					<span>
+						<select id="timeHours"><option>0</option><option>1</option><option>2</option><option>3</option></select>:<select id="timeMinutes"></select>:<select id="timeSeconds"></select> <button id="startAtTimeButton">Go</button>
+					</span>
+				</span>
 				<br style="clear:both;"/>
 				<div id="fileList"></div>
 			</div>
