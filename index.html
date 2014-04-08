@@ -7,7 +7,43 @@
 		<meta name="apple-mobile-web-app-capable" content="yes" />
 		<link rel="apple-touch-icon" href="/tv.png" />
 		<title>Media Browser</title>
+
 		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.1/jquery-ui.min.js"></script>
+		<script>
+			jQuery.uaMatch = function( ua ) {
+			ua = ua.toLowerCase();
+			var match = /(chrome)[ \/]([\w.]+)/.exec( ua ) ||
+			    /(webkit)[ \/]([\w.]+)/.exec( ua ) ||
+			    /(opera)(?:.*version|)[ \/]([\w.]+)/.exec( ua ) ||
+			    /(msie) ([\w.]+)/.exec( ua ) ||
+			    ua.indexOf("compatible") < 0 && /(mozilla)(?:.*? rv:([\w.]+)|)/.exec( ua ) ||
+			    [];
+			return {
+			    browser: match[ 1 ] || "",
+			    version: match[ 2 ] || "0"
+			};
+			};
+			if ( !jQuery.browser ) {
+			matched = jQuery.uaMatch( navigator.userAgent );
+			browser = {};
+			if ( matched.browser ) {
+			    browser[ matched.browser ] = true;
+			    browser.version = matched.version;
+			}
+			// Chrome is Webkit, but Webkit is also Safari.
+			if ( browser.chrome ) {
+			    browser.webkit = true;
+			} else if ( browser.webkit ) {
+			    browser.safari = true;
+			}
+			jQuery.browser = browser;
+			}
+		</script>
+		<script src="/js/jquery.boxy.js"></script>
+		<link rel="stylesheet" href="/css/boxy.css">
+		<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.1/themes/flick/jquery-ui.min.css">
+		
 		<script src="http://IP_ADDRESS:1337/socket.io/socket.io.js"></script> 
 		<script>
 			var socket = io.connect('http://'+window.location.hostname+':1337');
@@ -56,7 +92,15 @@
 				
 		    	$.each(data['list'], function(key, val)
 		    	{
-			    	out += '<div class="'+(val['isFile'] ? 'isFile' : 'isDir')+' '+(val['isViewed'] ? 'isViewed' : '')+'"><a href="#" data-type="'+(val['isFile'] ? 'file' : 'dir')+'" data-path="'+val['path']+'">'+val['name']+'</a></div>';
+			    	out += '<div class="'+(val['isFile'] ? 'isFile' : 'isDir')+' '+(val['isViewed'] ? 'isViewed' : '')+'"><a href="#" data-type="'+(val['isFile'] ? 'file' : 'dir')+'" data-path="'+val['path']+'">';
+			    	out += val['name']+'</a>';
+			    	
+			    	if (val['isFile'])
+			    	{
+				    	out += '<a href="javascript:{};" class="settingsLink" data-path="'+val['path']+'"><img class="settingsIcon" src="/images/settings_icon.png" /></a>';
+			    	}
+			    	
+			    	out += '</div>';
 		    	});
 		    	
 		    	$("#fileList").html(out);
@@ -133,6 +177,28 @@
 					return false;
 				});
 				
+				$(document).on('click', ".settingsLink", function()
+				{
+					var $this = $(this);
+					
+					var out = '<div><div><button class="copyToLocal" data-path="'+$this.data('path')+'">Copy to Local Drive</button></div><div><button class="markFileAsUnplayed" data-path="'+$this.data('path')+'">Mark as Unplayed</button></div></div>';
+					
+					new Boxy(out, {title: "Options", modal: true});
+					
+					return false;
+				});
+				
+				$(document).on('click', ".copyToLocal", function()
+				{
+					socket.emit('copyToLocalDrive', {path: $(this).data('path')});
+				});
+				
+				$(document).on('click', ".markFileAsUnplayed", function()
+				{
+					$("div.isFile a[data-path='"+$(this).data('path')+"']").parent().removeClass('isViewed');
+					socket.emit('markFileAsUnplayed', {path: $(this).data('path')});
+				});
+				
 				$("#upALevel").click(function()
 				{	
 					var parts = currentPath.split('/');
@@ -199,7 +265,93 @@
 					var startTime = parseInt($("#timeHours").val())*3600 + parseInt($("#timeMinutes").val())*60 + parseInt($("#timeSeconds").val());
 					socket.emit('play', {path: currentFile, startTime: startTime});
 				});
+
+				var responseCallback = function(){};
+				var show = '';
 				
+				$("#search").autocomplete(
+				{
+			        minLength: 0,
+			        source: function(request, response)
+			        {
+			        	responseCallback = response;
+			        	
+			        	if (show != '')
+			        	{
+			        		socket.emit('searchShowSeason', {show: show});
+						}
+						else 
+						{
+							socket.emit('search', {q: $("#search").val()});
+						}
+			        },
+			        select: function( event, ui )
+			        {
+			        	if (ui.item.type == 'show')
+			        	{
+			        		show = ui.item.value;
+				        	setTimeout('$("#search").val($("#search").val()+" "); $("#search").autocomplete( "search", "" );', 3);
+				        }
+				        else if (ui.item.type == 'season')
+				        {
+					        socket.emit('searchShowSeasonSelected', {show: show, season: ui.item.value});
+					        show = '';
+					        
+					        $("#search").val('');
+					        $('#upALevel').show();
+				        }
+				        else if (ui.item.type == 'movie')
+				        {
+					        socket.emit('play', {path: ui.item.path});
+							currentFile = ui.item.path;
+				        }
+			        }
+			    });
+			
+				socket.on('searchResults', function(data) 
+				{
+					console.log(data)
+					responseCallback(data.results);
+			    });
+				
+				socket.on('showSearchResults', function(data) 
+				{
+					console.log(data)
+					responseCallback(data.shows);
+			    });
+			    
+			    socket.on('showSeasonSearchResults', function(data) 
+				{
+					console.log(data)
+					responseCallback(data.seasons);
+			    });
+			    
+			    socket.on('copyLocalResult', function(data) 
+				{
+					if (data.success)
+					{
+						alert(data.path+" has been copied to the local drive.");
+					}
+					else
+					{
+						alert("Copying "+data.path+" failed.");
+					}
+			    });
+			    
+			    
+			    $(document).keyup(function(e)
+				{
+					if (e.which == 83)
+					{
+						$("#search").focus();
+					}
+				});
+				
+				$("#changeTime").click(function()
+				{
+					$("#changeTimeHolder").show();
+					$(this).hide();
+				});
 				
 				function loadDirList(path)
 				{
@@ -264,12 +416,19 @@
 			
 			#fileList > div a {
 				text-decoration: none;
-				display:block;
+				display:inline-block;
 				color:black;
+				width: calc(100% - 18px);
 			}
 			
 			#fileList > div.isViewed a {
 				color: gray;
+			}
+			
+			.settingsIcon {
+				width: 17px;
+				position: relative;
+				top: 2px;
 			}
 			
 			#controls {
@@ -298,11 +457,12 @@
 			<div id="header"></div>
 			<div id="content">
 				<a href="#" id="upALevel" style="display:none;float:left;">Up</a>
+				<input type="text" placeholder="Search..." id="search" />
 				<span id="continueOnHolder" style="float:right;padding-right: 4px;"></span>
 				<span style="float:right;">
 					<span id="timeHolder" ></span> 
-					<a href="javascript:{}">Change Time</a> 
-					<span>
+					<a href="javascript:{}" id="changeTime">Change Time</a> 
+					<span id="changeTimeHolder" style="display:none;">
 						<select id="timeHours"><option>0</option><option>1</option><option>2</option><option>3</option></select>:<select id="timeMinutes"></select>:<select id="timeSeconds"></select> <button id="startAtTimeButton">Go</button>
 					</span>
 				</span>

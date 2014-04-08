@@ -112,6 +112,31 @@ io.sockets.on('connection', function (socket)
   		pauseMovie();
     });
     
+    socket.on('copyToLocalDrive', function(data) 
+  	{
+  		var execFile = require('child_process').exec;
+  		
+  		execFile('/bin/cp "'+settings.mediaBasePath+'/'+data.path+'" "'+settings.mediaBasePath+'/'+settings.localPath+'/"', function(err, stdout, stderr)
+		{
+			if (stderr)
+			{
+				socket.emit('copyLocalResult', {success: false, path: data.path});
+			}
+			else
+			{
+				socket.emit('copyLocalResult', {success: true, path: data.path});
+			}
+			
+		});
+    });
+    
+    socket.on('markFileAsUnplayed', function(data) 
+  	{
+  		var parts = data.path.split('/');
+  		
+  		removePathToHistory(parts[parts.length-1]);
+    });
+    
     socket.on('stopCommand', function(data) 
   	{
   		setMode('waiting');
@@ -161,7 +186,9 @@ io.sockets.on('connection', function (socket)
   			//process.kill(player);
   		}
 	  	
-	  	writeViewingHistory(data['path']);
+	  	var parts = data['path'].split('/');
+	  	
+	  	addPathToHistory(parts[parts.length-1]);
 	  	
 	  	var args = settings.omxplayerArgs.slice(); //clone
 	  	
@@ -185,7 +212,6 @@ io.sockets.on('connection', function (socket)
 		  	
 		  	if (match.length > 7)
 		  	{
-			  	console.log();
 			  	var secs = 0;
 			  	var mins = 0;
 			  	var hours = 0;
@@ -223,13 +249,13 @@ io.sockets.on('connection', function (socket)
 			  	secs = secs.toString();
 			  	mins = mins.toString();
 			  	hours = hours.toString();
+			  	
 			  	secs = Array(2 + 1 - secs.length).join(0) + secs;
 			  	mins = Array(2 + 1 - mins.length).join(0) + mins;
 			  	hours = Array(2 + 1 - hours.length).join(0) + hours;
 			  	
 			  	socket.emit('currentPlayTime', { time:  hours+":"+mins+":"+secs});
-		  	}
-		  	
+		  	}	
 		});
 		  	
 	  	setMode('playing');
@@ -237,7 +263,6 @@ io.sockets.on('connection', function (socket)
     
     socket.on('dirList', function(data) 
   	{
-    	console.log();
     	var out = [];
     	
     	var dirs = fs.readdirSync(settings.mediaBasePath+data['dir']).sort(function(a, b) {
@@ -246,20 +271,171 @@ io.sockets.on('connection', function (socket)
     	
     	for (var i=0, cnt=dirs.length; i<cnt; i++)
 		{
-			out.push({path: data['dir']+'/'+dirs[i], name: dirs[i], isFile: fs.statSync(settings.mediaBasePath+data['dir']+'/'+dirs[i]).isFile(), isViewed: viewingHistory[data['dir']+'/'+dirs[i]]})
+			if (!/^\./.exec(dirs[i]))
+			{
+				out.push({
+				   path: data['dir']+'/'+dirs[i], 
+				   name: dirs[i], 
+				   isFile: fs.statSync(settings.mediaBasePath+data['dir']+'/'+dirs[i]).isFile(), 
+				   isViewed: viewingHistory[data['dir']+'/'+dirs[i]] || viewingHistory[dirs[i]],
+				});
+			}
 		}
     	
     	socket.emit('dirList', { list: out});
     });
     
+    function dirList(path)
+    {
+	    
+    }
+    
+    socket.on('searchShow', function(data)
+    {
+    	var execFile = require('child_process').exec;
+    	
+		execFile('find '+settings.mediaBasePath+settings.tvPath+' -maxdepth 1 -iname "'+data.q+'*" -type d', function(err, stdout, stderr)
+		{
+			var shows = [];
+		  	var file_list = stdout.split('\n');
+		  	
+		  	for (var line in file_list)
+		  	{
+		  		var parts = file_list[line].split('/');
+		  		
+		  		if (parts.length)
+		  		{
+			  		shows.push(parts[parts.length-1]);
+			  	}
+		  	}
+		  	
+		  	socket.emit('showSearchResults', {shows: shows});
+		});
+    });
+    
+    socket.on('search', function(data)
+    {
+    	var results = [];
+    	var execFile = require('child_process').exec;
+    	
+		execFile('find '+settings.mediaBasePath+settings.tvPath+' -maxdepth 1 -iname "'+data.q+'*" -type d', function(err, stdout, stderr)
+		{
+			var file_list = stdout.split('\n');
+			
+		  	for (var line in file_list)
+		  	{
+		  		var parts = file_list[line].split('/');
+		  		
+		  		if ((parts[0] == '' && parts.length > 1) || parts[0] != '')
+		  		{
+			  		results.push({
+			  		   label: parts[parts.length-1],
+			  		   value: parts[parts.length-1],
+			  		   type: 'show',
+			  		});
+			  	}
+		  	}
+		  	
+		  	execFile('find '+settings.mediaBasePath+settings.moviePath+' | grep -i -P "'+replaceAll(' ', '[\\\\. ]', data.q)+'"', function(err, stdout, stderr)// -type f
+			{
+				var file_list = stdout.split('\n');
+			  	
+			  	for (var line in file_list)
+			  	{
+			  		var parts = file_list[line].split('/');
+			  		
+			  		if ((parts[0] == '' && parts.length > 1) || parts[0] != '')
+			  		{
+				  		results.push({
+				  		   label: parts[parts.length-1],
+				  		   value: parts[parts.length-1],
+				  		   type: 'movie',
+				  		   path: file_list[line].replace(settings.mediaBasePath, ''),
+				  		});
+				  	}
+			  	}
+			  	
+			  	
+		
+			  	socket.emit('searchResults', {results: results});
+			});
+		});
+    });
+    
+    socket.on('searchShowSeason', function(data)
+    {
+    	var seasons = [];
+    	
+    	var dirs = fs.readdirSync(settings.mediaBasePath+settings.tvPath+'/'+data.show).sort(function(a, b) {
+	        return a < b ? -1 : 1;
+	    });
+    	
+    	for (var i=0, cnt=dirs.length; i<cnt; i++)
+		{
+			if (!/^\./.exec(dirs[i]))
+			{
+				seasons.push({
+				  		   label: dirs[i],
+				  		   value: dirs[i],
+				  		   type: 'season',
+				  		});
+			}
+		}
+    	
+		socket.emit('showSeasonSearchResults', {seasons: seasons});
+    });
+    
+    socket.on('searchShowSeasonSelected', function(data)
+    {
+    	var out = [];
+    	
+    	var dirs = fs.readdirSync(settings.mediaBasePath+settings.tvPath+'/'+data.show+'/'+data.season).sort(function(a, b) {
+	        return a < b ? -1 : 1;
+	    });
+	    
+	    //var difference = settings.tvPath.replace(settings.mediaBasePath, '');
+    	
+    	for (var i=0, cnt=dirs.length; i<cnt; i++)
+		{		
+			if (!/^\./.exec(dirs[i]))
+			{	
+				out.push({
+				   path: settings.tvPath+'/'+data.show+'/'+data.season+'/'+dirs[i], 
+				   name: dirs[i], 
+				   isFile: fs.statSync(settings.mediaBasePath+settings.tvPath+'/'+data.show+'/'+data.season+'/'+dirs[i]).isFile(), 
+				   isViewed: viewingHistory[dirs[i]] || viewingHistory[settings.tvPath+'/'+data.show+'/'+data.season+'/'+dirs[i]],
+				});
+			}
+		}
+    	
+    	socket.emit('dirList', { list: out});
+    });
+    
+    
+    
+    
     setMode(mode);
     
 });
 
-function writeViewingHistory(path)
+function replaceAll(find, replace, str) {
+  return str.replace(new RegExp(find, 'g'), replace);
+}
+
+function addPathToHistory(path)
 {
 	viewingHistory[path] = true;
-	
+	writeViewingHistory(path)
+}
+
+function removePathToHistory(path)
+{
+	viewingHistory[path] = false;
+	writeViewingHistory(path)
+}
+
+function writeViewingHistory()
+{
 	fs.writeFile(__dirname+'/viewingHistory.js', JSON.stringify(viewingHistory), function (err)
 	{
 	});
