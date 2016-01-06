@@ -2,6 +2,13 @@ var spawn = require('child_process').spawn;
 var fs = require("fs");
 var mime = require('mime');
 
+var mdns = require('mdns');
+var ad = mdns.createAdvertisement(mdns.tcp('bdizzie-pi'), 80);
+ad.start();
+
+
+
+
 eval(fs.readFileSync(__dirname+'/settings.js')+'');
 
 var mode = 'waiting';
@@ -10,7 +17,7 @@ var currentFile = '';
 
 var http = require('http');	
 var io = require('socket.io').listen(settings.socketIoPort);
-io.set('log level', 1); 
+//io.set('log level', 1); 
 var ioClient = require('socket.io-client');
 
 process.on('uncaughtException', function(err) {
@@ -72,7 +79,7 @@ http.createServer(function (req, res)
 }).listen(settings.httpPort);
 
 
-io.sockets.on('connection', function (socket) 
+io.on('connection', function(socket) 
 {
 	function pauseMovie()
 	{
@@ -87,7 +94,7 @@ io.sockets.on('connection', function (socket)
 	function setMode(m)
 	{
 		mode = m;
-		socket.emit('setMode', { mode: mode});
+		io.emit('setMode', { mode: mode});
 	}
 	
 	socket.on('continueOn', function(data) 

@@ -46,7 +46,7 @@
 		
 		<script src="http://IP_ADDRESS:1337/socket.io/socket.io.js"></script> 
 		<script>
-			var socket = io.connect('http://'+window.location.hostname+':1337');
+			var socket = io('http://'+window.location.hostname+':1337');
 		  
 			var currentPath = '/';
 			var currentFile = '';
@@ -111,10 +111,23 @@
 				$("#timeHolder").text(data.time);
 		    });
 		    
-		    
-		    
 		    $(document).ready(function()
 		    {
+			    $(document).keyup(function(e)
+			    {
+				    if (e.keyCode == 32 && !$("#search").is(':focus'))
+				    {
+					    if ($("#pauseButton").is(':visible'))
+					    {
+						    socket.emit('pauseCommand');
+					    }
+					    else
+					    {
+						    socket.emit('playCommand');
+					    }
+				    }
+			    });
+			    
 		    	function resize()
 		    	{
 			    	$("#content").height($(window).height()-68);
