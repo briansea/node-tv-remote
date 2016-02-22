@@ -119,6 +119,26 @@ io.on('connection', function(socket)
   		pauseMovie();
     });
     
+    socket.on('mountAll', function(data) 
+  	{
+  		var execFile = require('child_process').exec;
+  		
+  		execFile('mount -a', function(err, stdout, stderr)
+		{
+			socket.emit('mountAllDone', {success: true});
+		});
+    });
+    
+    socket.on('reboot', function(data) 
+  	{
+  		var execFile = require('child_process').exec;
+  		
+  		execFile('reboot', function(err, stdout, stderr)
+		{
+			//socket.emit('mountAllDone', {success: true});
+		});
+    });
+    
     socket.on('copyToLocalDrive', function(data) 
   	{
   		var execFile = require('child_process').exec;
