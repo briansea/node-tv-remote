@@ -18,7 +18,6 @@ Create a settings.js file and configure as necessary
 
 <code>
   var settings = {
-	
 	httpPort: 80,
 	socketIoPort: 1337,
 	mediaBasePath: '/media',
@@ -38,7 +37,7 @@ It requires the following node modules:
 * http
 * socket.io
 * mdns
-* mime
+* mime-types
 
 It's best to use the forever module/utility to keep the app running in the background.
 
