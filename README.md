@@ -12,6 +12,24 @@ Edit the settings.js file to set the path to your media directory. It could be a
 * NFS Mount
 * Etc.
 
+apt-get install libavahi-compat-libdnssd-dev
+
+Create a settings.js file and configure as necessary
+
+<code>
+  var settings = {
+	
+	httpPort: 80,
+	socketIoPort: 1337,
+	mediaBasePath: '/media',
+	tvPath: '/svr2/TV_Shows',
+	moviePath: '/diskstation/Movies',
+	localPath: '/local',
+	omxplayerArgs: ["-s", "-o", "hdmi"], //"-o", "hdmi"
+	otherTvServers: ["livingroom-pi.local"], //allows you to continuing playing a media file on any of the listed other servers
+};
+</code>
+
 
 It requires the following node modules:
 
@@ -19,6 +37,8 @@ It requires the following node modules:
 * fs
 * http
 * socket.io
+* mdns
+* mime
 
 It's best to use the forever module/utility to keep the app running in the background.
 
